@@ -77,19 +77,19 @@ class RPSGame
     puts ">> #{computer.name} chose #{computer.name.move.value.pick}."
   end
 
+  # rubocop:disable Metrics/AbcSize
   def add_score
-    if human.move > computer.name.move
+    if human.move.value.beats(computer.name.move.value.pick)
       @@score_human += 1
-    elsif human.move < computer.name.move
+    elsif human.move.value.gets_beaten(computer.name.move.value.pick)
       @@score_computer += 1
     end
   end
 
-  # rubocop:disable Metrics/AbcSize
   def display_winner
-    if human.move > computer.name.move
+    if human.move.value.beats(computer.name.move.value.pick)
       puts ">> #{human.name} won this round!"
-    elsif human.move < computer.name.move
+    elsif human.move.value.gets_beaten(computer.name.move.value.pick)
       puts ">> #{computer.name} won this round!"
     else
       puts ">> This round is a tie!"
@@ -232,11 +232,27 @@ class Rock < Move
   def initialize
     @pick = 'rock'
   end
+
+  def beats(other_move)
+    ['scissors', 'lizard'].include?(other_move)
+  end
+
+  def gets_beaten(other_move)
+    ['paper', 'spock'].include?(other_move)
+  end
 end
 
 class Paper < Move
   def initialize
     @pick = 'paper'
+  end
+
+  def beats(other_move)
+    ['rock', 'spock'].include?(other_move)
+  end
+
+  def gets_beaten(other_move)
+    ['scissors', 'lizard'].include?(other_move)
   end
 end
 
@@ -244,17 +260,41 @@ class Scissors < Move
   def initialize
     @pick = 'scissors'
   end
+
+  def beats(other_move)
+    ['paper', 'lizard'].include?(other_move)
+  end
+
+  def gets_beaten(other_move)
+    ['rock', 'spock'].include?(other_move)
+  end
 end
 
 class Lizard < Move
   def initialize
     @pick = 'lizard'
   end
+
+  def beats(other_move)
+    ['paper', 'spock'].include?(other_move)
+  end
+
+  def gets_beaten(other_move)
+    ['scissors', 'rock'].include?(other_move)
+  end
 end
 
 class Spock < Move
   def initialize
     @pick = 'spock'
+  end
+
+  def beats(other_move)
+    ['scissors', 'rock'].include?(other_move)
+  end
+
+  def gets_beaten(other_move)
+    ['paper', 'lizard'].include?(other_move)
   end
 end
 
