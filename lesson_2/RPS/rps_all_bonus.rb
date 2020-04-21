@@ -174,58 +174,6 @@ class Move
     when 'spock'    then @value = Spock.new
     end
   end
-
-  def rock?
-    @value.class == Rock
-  end
-
-  def scissors?
-    @value.class == Scissors
-  end
-
-  def paper?
-    @value.class == Paper
-  end
-
-  def lizard?
-    @value.class == Lizard
-  end
-
-  def spock?
-    @value.class == Spock
-  end
-
-  # rubocop:disable Metrics/AbcSize
-  # rubocop:disable Metrics/CyclomaticComplexity
-  # rubocop:disable Metrics/PerceivedComplexity
-  def >(other_move)
-    (rock? && other_move.scissors?) ||
-      (rock? && other_move.lizard?) ||
-      (paper? && other_move.rock?) ||
-      (paper? && other_move.spock?) ||
-      (scissors? && other_move.paper?) ||
-      (scissors? && other_move.lizard?) ||
-      (lizard? && other_move.spock?) ||
-      (lizard? && other_move.paper?) ||
-      (spock? && other_move.rock?) ||
-      (spock? && other_move.scissors?)
-  end
-
-  def <(other_move)
-    (rock? && other_move.paper?) ||
-      (rock? && other_move.spock?) ||
-      (paper? && other_move.scissors?) ||
-      (paper? && other_move.lizard?) ||
-      (scissors? && other_move.rock?) ||
-      (scissors? && other_move.spock?) ||
-      (lizard? && other_move.rock?) ||
-      (lizard? && other_move.scissors?) ||
-      (spock? && other_move.lizard?) ||
-      (spock? && other_move.paper?)
-  end
-  # rubocop:enable Metrics/AbcSize
-  # rubocop:enable Metrics/CyclomaticComplexity
-  # rubocop:enable Metrics/PerceivedComplexity
 end
 
 class Rock < Move
