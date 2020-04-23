@@ -1,55 +1,3 @@
-# RPS Game using OOP design and implementing Bonus Features:
-# 1. Keeping score
-# I made class variables `@@score_human` and `@@score_computer` inside the
-# `RPSGame` class and modified their values inside the `display_winner` method.
-# I created a new `add_score` method where the values of the two class variables
-# were reset as needed by comparing `human.move` to `computer.move` with `>` or
-# `<`. I modified the loop inside the `play` method so that there is an outer
-# loop that will display the final winner and ask if play again (if yes, reset
-# class score variables to 0, if no, display goodbye message and break out of
-# loop). There is an inner `while` loop that checks that the two class score
-# variables have values less than the given final win value. I added a
-# `display_final_winner` method that compares the values of the `@@score_human`
-# and `@@score_computer` and displays the final winner.
-
-# Comparing the two options (class variable for score vs. new class for score),
-# it seems that the first option is simpler and thus better. The new class only
-# creates additional code (an additional collaborator object with a single
-# variable for points that can easily be managed as a class variable) and does
-# not provide any benefits that I could see. I made a version of the class
-# option (rps_bonus_1_optionb_revised.rb)
-
-# 2. Add Lizard and Spock
-# Add `lizard` and `spock` to `Move` class and add more conditions for
-# determining the winner in `RPSGame` class.
-
-# 3. Add a class for each move
-# My implimentation of adding the 5 additional move classes did not improve the
-# code. I created new Rock/Paper/Scissors/Lizard/Spock objects based on the
-# choice made by player and saved that as the instance variable `@value` in the
-# `Move` class. Each additional move class inherited from `Move` and was
-# initialized with a `@pick` variable that points to the string object for the
-# move picked. In essence this only extends the string object further away,
-# instead of being able to access the string object as the `@value` variable in
-# the `Move` class, we have assigned `@value` to a collaborator object of a
-# different class and within that class we have another instance variable
-# pointing to the string.
-
-# 4. Keep track of a history of moves
-# Keep track of moves in `Human` class for human and `Computer` class for
-# computer. Add an instance variable `history` to the `initialize` method.
-# `@history` points to an array that gets a new item each time the `choose`
-# method is run. Output can be based on array index + 1 and array item:
-# 1. rock
-# 2. scissors
-# and so on
-# Display history after each game
-
-# 5. Computer personalities
-# This will be a good case for new subclasses, each computer will be a subclass
-# of `Computer` class and the subclasses will each have their own `choose`
-# method
-
 class RPSGame
   SCORE_FOR_WIN = 2
 
@@ -77,25 +25,31 @@ class RPSGame
     puts ">> #{computer.name} chose #{computer.name.move.value.pick}."
   end
 
-  def add_score
+  def determine_winner
     if human.move.value.beats(computer.name.move.value.pick)
+      "human"
+    elsif computer.name.move.value.beats(human.move.value.pick)
+      "computer"
+    end
+  end
+
+  def add_score
+    if determine_winner == 'human'
       @@score_human += 1
-    elsif human.move.value.gets_beaten(computer.name.move.value.pick)
+    elsif determine_winner == 'computer'
       @@score_computer += 1
     end
   end
 
-  # rubocop:disable Metrics/AbcSize
   def display_winner
-    if human.move.value.beats(computer.name.move.value.pick)
+    if determine_winner == 'human'
       puts ">> #{human.name} won this round!"
-    elsif human.move.value.gets_beaten(computer.name.move.value.pick)
+    elsif determine_winner == 'computer'
       puts ">> #{computer.name} won this round!"
     else
       puts ">> This round is a tie!"
     end
   end
-  # rubocop:enable Metrics/AbcSize
 
   def display_final_winner
     if @@score_human > @@score_computer
@@ -131,101 +85,55 @@ class RPSGame
     system('clear') || system('cls')
   end
 
-  # rubocop:disable Metrics/MethodLength
-  # rubocop:disable Metrics/AbcSize
+  def play_round
+    human.choose
+    computer.name.choose
+    display_moves
+    add_score
+    display_winner
+    clear
+  end
+
+  def reset
+    @@score_computer = 0
+    @@score_human = 0
+    system('clear') || system('cls')
+  end
+
   def play
     display_welcome_message
-
     loop do
       while @@score_computer < SCORE_FOR_WIN && @@score_human < SCORE_FOR_WIN
-        human.choose
-        computer.name.choose
-        display_moves
-        add_score
-        display_winner
-        clear
+        play_round
       end
       display_final_winner
       display_history
-      if play_again?
-        @@score_computer = 0
-        @@score_human = 0
-        system('clear') || system('cls')
-      else
-        display_goodbye_message
-        break
-      end
+      play_again? ? reset : break
     end
+    display_goodbye_message
   end
-  # rubocop:enable Metrics/MethodLength
-  # rubocop:enable Metrics/AbcSize
 end
 
 class Move
-  VALUES = ['rock', 'paper', 'scissors', 'lizard', 'spock']
-  attr_accessor :value, :pick
+  VALUES = ['r', 'p', 'sc', 'l', 'sp']
+  attr_accessor :value, :pick, :human, :computer
 
   def initialize(value)
     case value
-    when 'rock'     then @value = Rock.new
-    when 'paper'    then @value = Paper.new
-    when 'scissors' then @value = Scissors.new
-    when 'lizard'   then @value = Lizard.new
-    when 'spock'    then @value = Spock.new
+    when 'r' then @value = Rock.new
+    when 'p' then @value = Paper.new
+    when 'sc' then @value = Scissors.new
+    when 'l' then @value = Lizard.new
+    when 'sp' then @value = Spock.new
     end
   end
 
-  def rock?
-    @value.class == Rock
-  end
-
-  def scissors?
-    @value.class == Scissors
-  end
-
-  def paper?
-    @value.class == Paper
-  end
-
-  def lizard?
-    @value.class == Lizard
-  end
-
-  def spock?
-    @value.class == Spock
-  end
-
-  # rubocop:disable Metrics/AbcSize
-  # rubocop:disable Metrics/CyclomaticComplexity
-  # rubocop:disable Metrics/PerceivedComplexity
-  def >(other_move)
-    (rock? && other_move.scissors?) ||
-      (rock? && other_move.lizard?) ||
-      (paper? && other_move.rock?) ||
-      (paper? && other_move.spock?) ||
-      (scissors? && other_move.paper?) ||
-      (scissors? && other_move.lizard?) ||
-      (lizard? && other_move.spock?) ||
-      (lizard? && other_move.paper?) ||
-      (spock? && other_move.rock?) ||
-      (spock? && other_move.scissors?)
-  end
-
-  def <(other_move)
-    (rock? && other_move.paper?) ||
-      (rock? && other_move.spock?) ||
-      (paper? && other_move.scissors?) ||
-      (paper? && other_move.lizard?) ||
-      (scissors? && other_move.rock?) ||
-      (scissors? && other_move.spock?) ||
-      (lizard? && other_move.rock?) ||
-      (lizard? && other_move.scissors?) ||
-      (spock? && other_move.lizard?) ||
-      (spock? && other_move.paper?)
-  end
-  # rubocop:enable Metrics/AbcSize
-  # rubocop:enable Metrics/CyclomaticComplexity
-  # rubocop:enable Metrics/PerceivedComplexity
+  # def beats?(move, other_move)
+  #   move.value == 'r' && ['sc', 'l'].include?(other_move.value) ||
+  #     move.value == 'p' && ['sp', 'r'].include?(other_move.value) ||
+  #     move.value == 'l' && ['sp', 'p'].include?(other_move.value) ||
+  #     move.value == 'sp' && ['sc', 'r'].include?(other_move.value)
+  # end
 end
 
 class Rock < Move
@@ -235,10 +143,6 @@ class Rock < Move
 
   def beats(other_move)
     ['scissors', 'lizard'].include?(other_move)
-  end
-
-  def gets_beaten(other_move)
-    ['paper', 'spock'].include?(other_move)
   end
 end
 
@@ -250,10 +154,6 @@ class Paper < Move
   def beats(other_move)
     ['rock', 'spock'].include?(other_move)
   end
-
-  def gets_beaten(other_move)
-    ['scissors', 'lizard'].include?(other_move)
-  end
 end
 
 class Scissors < Move
@@ -263,10 +163,6 @@ class Scissors < Move
 
   def beats(other_move)
     ['paper', 'lizard'].include?(other_move)
-  end
-
-  def gets_beaten(other_move)
-    ['rock', 'spock'].include?(other_move)
   end
 end
 
@@ -278,10 +174,6 @@ class Lizard < Move
   def beats(other_move)
     ['paper', 'spock'].include?(other_move)
   end
-
-  def gets_beaten(other_move)
-    ['scissors', 'rock'].include?(other_move)
-  end
 end
 
 class Spock < Move
@@ -292,12 +184,6 @@ class Spock < Move
   def beats(other_move)
     ['scissors', 'rock'].include?(other_move)
   end
-
-  def gets_beaten(other_move)
-    ['paper', 'lizard'].include?(other_move)
-  end
-
-
 end
 
 class Player
@@ -331,7 +217,8 @@ class Human < Player
   def choose
     choice = nil
     loop do
-      puts ">> Please choose rock, paper, scissors, lizard, or spock:"
+      puts ">> Please choose from:"
+      puts ">> rock (r), paper (p), scissors (sc), lizard (l), or spock (sp)"
       choice = gets.chomp
       break if Move::VALUES.include?(choice)
       puts ">> Sorry, invalid choice."
@@ -354,7 +241,7 @@ class Computer1 < Computer
   end
 
   def choose
-    self.move = Move.new('rock')
+    self.move = Move.new('r')
     @history << move.value.pick
   end
 
@@ -370,7 +257,7 @@ class Computer2 < Computer
   end
 
   def choose
-    self.move = Move.new(['spock', 'spock', 'spock', 'spock', 'lizard'].sample)
+    self.move = Move.new(['sp', 'sp', 'sp', 'sp', 'l'].sample)
     @history << move.value.pick
   end
 
