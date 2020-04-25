@@ -1,3 +1,17 @@
+# Improvements from test.rb:
+# Step 1:
+# Get rid of `@value` from `Move` that used to point to `R/P/Sc/L/Sp` objects,
+# now when a `Move` object is initialized, it points directly to a `R/P/Sc/L/Sp`
+# object.
+# Step 2:
+# Get rid of `@name` variable of `Computer` that used to point to
+# `Computer1/2/3` objects. Now I have `@computer` initialized to directly point
+# to a `Computer1/2/3` object.
+# Step 3:
+# Add a `beats?` method to `Move` class that uses `@beats` from each subclass of
+# `Move` to determine if the "self" move wins. The `beats?` method is then
+# called in the RPSGame class `determine_winner` method.
+
 class RPSGame
   SCORE_FOR_WIN = 2
 
@@ -7,7 +21,7 @@ class RPSGame
 
   def initialize
     @human = Human.new
-    @computer = Computer.new
+    @computer = [Computer1.new, Computer2.new, Computer3.new].sample
   end
 
   def display_welcome_message
@@ -21,14 +35,14 @@ class RPSGame
   end
 
   def display_moves
-    puts ">> #{human.name} chose #{human.move.value.pick}."
-    puts ">> #{computer.name} chose #{computer.name.move.value.pick}."
+    puts ">> #{human.name} chose #{human.move.pick}."
+    puts ">> #{computer.name} chose #{computer.move.pick}."
   end
 
   def determine_winner
-    if human.move.value.beats(computer.name.move.value.pick)
+    if human.move.beats?(computer.move)
       "human"
-    elsif computer.name.move.value.beats(human.move.value.pick)
+    elsif computer.move.beats?(human.move)
       "computer"
     end
   end
@@ -63,7 +77,7 @@ class RPSGame
     puts ">> #{human.name} played the following moves:"
     human.history
     puts ">> #{computer.name} played the following moves:"
-    computer.name.history
+    computer.history
   end
 
   def play_again?
@@ -87,7 +101,7 @@ class RPSGame
 
   def play_round
     human.choose
-    computer.name.choose
+    computer.choose
     display_moves
     add_score
     display_winner
@@ -115,82 +129,57 @@ class RPSGame
 end
 
 class Move
-  VALUES = ['r', 'p', 'sc', 'l', 'sp']
   attr_accessor :value, :pick, :human, :computer
 
-  def initialize(value)
-    case value
-    when 'r' then @value = Rock.new
-    when 'p' then @value = Paper.new
-    when 'sc' then @value = Scissors.new
-    when 'l' then @value = Lizard.new
-    when 'sp' then @value = Spock.new
-    end
+  def beats?(other_move)
+    @beats.include?(other_move.pick)
   end
-
-  # def beats?(move, other_move)
-  #   move.value == 'r' && ['sc', 'l'].include?(other_move.value) ||
-  #     move.value == 'p' && ['sp', 'r'].include?(other_move.value) ||
-  #     move.value == 'l' && ['sp', 'p'].include?(other_move.value) ||
-  #     move.value == 'sp' && ['sc', 'r'].include?(other_move.value)
-  # end
 end
 
 class Rock < Move
   def initialize
     @pick = 'rock'
-  end
-
-  def beats(other_move)
-    ['scissors', 'lizard'].include?(other_move)
+    @beats = ['scissors', 'lizard']
   end
 end
 
 class Paper < Move
   def initialize
     @pick = 'paper'
-  end
-
-  def beats(other_move)
-    ['rock', 'spock'].include?(other_move)
+    @beats = ['rock', 'spock']
   end
 end
 
 class Scissors < Move
   def initialize
     @pick = 'scissors'
-  end
-
-  def beats(other_move)
-    ['paper', 'lizard'].include?(other_move)
+    @beats = ['paper', 'lizard']
   end
 end
 
 class Lizard < Move
   def initialize
     @pick = 'lizard'
-  end
-
-  def beats(other_move)
-    ['paper', 'spock'].include?(other_move)
+    @beats = ['paper', 'spock']
   end
 end
 
 class Spock < Move
   def initialize
     @pick = 'spock'
-  end
-
-  def beats(other_move)
-    ['scissors', 'rock'].include?(other_move)
+    @beats = ['scissors', 'rock']
   end
 end
 
 class Player
+
+  XVALUES = { 'r' => Rock.new, 'p' => Paper.new,
+    'sc' => Scissors.new, 'l' => Lizard.new,
+    'sp' => Spock.new }
+
   attr_accessor :move, :name, :pick, :history
 
   def initialize
-    # @move = nil, will be initialized to `nil` automatically
     set_name
     @history = []
   end
@@ -220,65 +209,53 @@ class Human < Player
       puts ">> Please choose from:"
       puts ">> rock (r), paper (p), scissors (sc), lizard (l), or spock (sp)"
       choice = gets.chomp
-      break if Move::VALUES.include?(choice)
+      break if XVALUES.keys.include?(choice)
       puts ">> Sorry, invalid choice."
     end
-    self.move = Move.new(choice)
-    @history << move.value.pick
+    self.move = XVALUES[choice]
+    @history << move.pick
   end
 end
 
 class Computer < Player
-  def set_name
-    self.name = [Computer1.new, Computer2.new, Computer3.new].sample
+  def initialize
+    @history = []
   end
 end
 
 class Computer1 < Computer
   def initialize
+    super
     @name = "Rocky"
-    @history = []
   end
 
   def choose
-    self.move = Move.new('r')
-    @history << move.value.pick
-  end
-
-  def to_s
-    @name
+    self.move = XVALUES['r']
+    @history << move.pick
   end
 end
 
 class Computer2 < Computer
   def initialize
+    super
     @name = "Star Trek Fanboy"
-    @history = []
   end
 
   def choose
-    self.move = Move.new(['sp', 'sp', 'sp', 'sp', 'l'].sample)
-    @history << move.value.pick
-  end
-
-  def to_s
-    @name
+    self.move = XVALUES[['sp', 'sp', 'sp', 'sp', 'l'].sample]
+    @history << move.pick
   end
 end
 
 class Computer3 < Computer
   def initialize
+    super
     @name = "Randy"
-    @history = []
   end
 
   def choose
-    self.move = Move.new(Move::VALUES.sample)
-    @history << move.value.pick
-  end
-
-  def to_s
-    @name
+    self.move = XVALUES.values.sample
+    @history << move.pick
   end
 end
 
