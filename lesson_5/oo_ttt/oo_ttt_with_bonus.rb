@@ -2,6 +2,7 @@ class Board
   WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] + # rows
                   [[1, 4, 7], [2, 5, 8], [3, 6, 9]] + # cols
                   [[1, 5, 9], [3, 5, 7]]              # diagonals
+  MVS = 5
 
   def initialize
     @squares = {}
@@ -16,8 +17,12 @@ class Board
     @squares.keys.select { |key| @squares[key].unmarked? }
   end
 
+  def random_move
+    unmarked_keys.sample
+  end
+
   def empty_square_5?
-    @squares[5].marker == Square::INITIAL_MARKER
+    @squares[MVS].marker == Square::INITIAL_MARKER
   end
 
   def full?
@@ -38,24 +43,11 @@ class Board
     nil
   end
 
-  def computer_attack(player)
+  def computer_ai_move(player)
     pick = []
     WINNING_LINES.each do |line|
       squares = @squares.values_at(*line)
       if two_markers_in_line?(squares) == player
-        line.each do |num|
-          pick << num if @squares[num].marker == Square::INITIAL_MARKER
-        end
-      end
-    end
-    pick[0]
-  end
-
-  def computer_defense(opposite_player)
-    pick = []
-    WINNING_LINES.each do |line|
-      squares = @squares.values_at(*line)
-      if two_markers_in_line?(squares) == opposite_player
         line.each do |num|
           pick << num if @squares[num].marker == Square::INITIAL_MARKER
         end
@@ -324,13 +316,13 @@ class TTTGame
   # rubocop:disable Metrics/AbcSize
   def computer_moves
     if board.determine_approach.include?(@computer_marker)
-      board[board.computer_attack(@computer_marker)] = @computer_marker
+      board[board.computer_ai_move(@computer_marker)] = @computer_marker
     elsif board.determine_approach.include?(@human_marker)
-      board[board.computer_defense(@human_marker)] = @computer_marker
+      board[board.computer_ai_move(@human_marker)] = @computer_marker
     elsif board.empty_square_5?
-      board[5] = @computer_marker
+      board[Board::MVS] = @computer_marker
     else
-      board[board.unmarked_keys.sample] = @computer_marker
+      board[board.random_move] = @computer_marker
     end
   end
   # rubocop:enable Metrics/AbcSize
