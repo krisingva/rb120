@@ -1,3 +1,8 @@
+Removed `@@human_total` and `@@computer_total` class variables from `TTTGame` class and instead set `@total` instance variable in `Player` class.
+
+Removed `@human_marker` and `@computer_marker` from `TTTGame` class and instead used `@marker` instance variable in `Player` class. Reworked the approach to set
+computer marker based on the user choice for human marker, removed the constant `MARKERS` and replaced with `@@marker_choices` hash in `Player` class that gets modified when human player picks a marker.
+
 class Board
   WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] + # rows
                   [[1, 4, 7], [2, 5, 8], [3, 6, 9]] + # cols
@@ -126,35 +131,50 @@ class Square
 end
 
 class Player
-  MARKERS = ["X", "O"]
+  @@marker_choices = { "X" => nil, "O" => nil }
 
   attr_reader :marker, :name
+  attr_accessor :total
+
+  def initialize(player_name)
+    @name = player_name.capitalize
+    @total = 0
+    set_marker
+  end
 end
 
 class Human < Player
   def initialize(player_name)
-    @name = player_name.capitalize
-    puts "Hello #{name}!"
-    set_marker
+    super
+    puts "Hi #{name}!"
   end
 
+  # rubocop:disable Metrics/MethodLength
   def set_marker
     loop do
       puts "Which marker would you like to pick: 'X' or 'O'?"
       answer = gets.chomp.upcase
-      if MARKERS.include? answer
+      if @@marker_choices.keys.include? answer
         @marker = answer
+        @@marker_choices[answer] = "human"
         break
       else
         puts "Invalid choice."
       end
     end
   end
+  # rubocop:enable Metrics/MethodLength
 end
 
 class Computer < Player
-  def initialize
-    @name = "Puter"
+  def initialize(player_name="Puter")
+    super
+  end
+
+  def set_marker
+    @@marker_choices.each do |k, v|
+      @marker = k if v != "human"
+    end
   end
 end
 
@@ -162,9 +182,6 @@ class TTTGame
   FIRST_TO_MOVE = "choose"
   # valid options for FIRST_TO_MOVE are: "choose", "human", "computer"
   POINTS_TO_WIN = 2
-
-  @@human_total = 0
-  @@computer_total = 0
 
   attr_reader :board, :human, :computer
 
@@ -218,7 +235,7 @@ class TTTGame
   end
 
   def display_players
-    puts "You are #{@human_marker}."
+    puts "You are #{human.marker}."
     puts "Today you are playing #{computer.name}."
     puts "I've made #{computer.name} pretty smart."
     puts "Let's see who wins!"
@@ -226,9 +243,7 @@ class TTTGame
 
   def get_players(player_name)
     @human = Human.new(player_name)
-    @human_marker = human.marker
     @computer = Computer.new
-    @computer_marker = (Player::MARKERS - [@human_marker])[0]
     @current_marker = nil
   end
 
@@ -249,10 +264,10 @@ class TTTGame
       puts "Please choose who goes first: 'h' for human or 'c' for computer."
       answer = gets.chomp
       if answer == 'h'
-        @current_marker = @human_marker
+        @current_marker = human.marker
         break
       elsif answer == 'c'
-        @current_marker = @computer_marker
+        @current_marker = computer.marker
         break
       else
         puts "Invalid choice."
@@ -265,9 +280,9 @@ class TTTGame
     if FIRST_TO_MOVE == "choose"
       choose_move
     elsif FIRST_TO_MOVE == "human"
-      @current_marker = @human_marker
+      @current_marker = human.marker
     elsif FIRST_TO_MOVE == "computer"
-      @current_marker = @computer_marker
+      @current_marker = computer.marker
     end
   end
 
@@ -281,11 +296,11 @@ class TTTGame
   end
 
   def human_turn?
-    @current_marker == @human_marker
+    @current_marker == human.marker
   end
 
   def display_board
-    puts "You're a #{@human_marker}. #{computer.name} is a #{@computer_marker}."
+    puts "You're a #{human.marker}. #{computer.name} is a #{computer.marker}."
     puts ""
     board.draw
     puts ""
@@ -301,6 +316,7 @@ class TTTGame
     end
   end
 
+  # rubocop:disable Metrics/AbcSize
   def human_moves
     puts "Which square would you like to pick #{human.name}?"
     puts "You can pick from: " + joinor(board.unmarked_keys, ', ')
@@ -311,19 +327,18 @@ class TTTGame
       puts "Sorry, that's not a valid choice."
     end
 
-    board[square] = @human_marker
+    board[square] = human.marker
   end
 
-  # rubocop:disable Metrics/AbcSize
   def computer_moves
-    if board.determine_approach.include?(@computer_marker)
-      board[board.computer_ai_move(@computer_marker)] = @computer_marker
-    elsif board.determine_approach.include?(@human_marker)
-      board[board.computer_ai_move(@human_marker)] = @computer_marker
+    if board.determine_approach.include?(computer.marker)
+      board[board.computer_ai_move(computer.marker)] = computer.marker
+    elsif board.determine_approach.include?(human.marker)
+      board[board.computer_ai_move(human.marker)] = computer.marker
     elsif board.empty_square_5?
-      board[Board::MVS] = @computer_marker
+      board[Board::MVS] = computer.marker
     else
-      board[board.random_move] = @computer_marker
+      board[board.random_move] = computer.marker
     end
   end
   # rubocop:enable Metrics/AbcSize
@@ -331,34 +346,34 @@ class TTTGame
   def current_player_moves
     if human_turn?
       human_moves
-      @current_marker = @computer_marker
+      @current_marker = computer.marker
     else
       computer_moves
-      @current_marker = @human_marker
+      @current_marker = human.marker
     end
   end
 
   def update_total
-    if board.winning_marker == @human_marker
-      @@human_total += 1
-    elsif board.winning_marker == @computer_marker
-      @@computer_total += 1
+    if board.winning_marker == human.marker
+      human.total += 1
+    elsif board.winning_marker == computer.marker
+      computer.total += 1
     end
   end
 
   def reset_totals
-    @@human_total = 0
-    @@computer_total = 0
+    human.total = 0
+    computer.total = 0
   end
 
   def total_winner?
-    @@human_total == POINTS_TO_WIN || @@computer_total == POINTS_TO_WIN
+    human.total == POINTS_TO_WIN || computer.total == POINTS_TO_WIN
   end
 
   def display_total_winner
-    if @@human_total == POINTS_TO_WIN
+    if human.total == POINTS_TO_WIN
       puts "You've won the game with #{POINTS_TO_WIN} points!"
-    elsif @@computer_total == POINTS_TO_WIN
+    elsif computer.total == POINTS_TO_WIN
       puts "#{computer.name} won the game with #{POINTS_TO_WIN} points!"
     end
   end
@@ -367,9 +382,9 @@ class TTTGame
     clear_screen_and_display_board
 
     case board.winning_marker
-    when @human_marker
+    when human.marker
       puts "You won!"
-    when @computer_marker
+    when computer.marker
       puts "#{computer.name} won!"
     else
       puts "It's a tie!"
@@ -398,8 +413,8 @@ class TTTGame
   end
 
   def round_end_display
-    puts "You have #{@@human_total} points."
-    puts "#{computer.name} has #{@@computer_total} points."
+    puts "You have #{human.total} points."
+    puts "#{computer.name} has #{computer.total} points."
     puts "Press enter when you are ready for the next round"
     gets.chomp
     reset
