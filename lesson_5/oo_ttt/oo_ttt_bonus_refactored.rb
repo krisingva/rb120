@@ -1,8 +1,3 @@
-Removed `@@human_total` and `@@computer_total` class variables from `TTTGame` class and instead set `@total` instance variable in `Player` class.
-
-Removed `@human_marker` and `@computer_marker` from `TTTGame` class and instead used `@marker` instance variable in `Player` class. Reworked the approach to set
-computer marker based on the user choice for human marker, removed the constant `MARKERS` and replaced with `@@marker_choices` hash in `Player` class that gets modified when human player picks a marker.
-
 class Board
   WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] + # rows
                   [[1, 4, 7], [2, 5, 8], [3, 6, 9]] + # cols
