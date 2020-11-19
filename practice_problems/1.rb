@@ -19,9 +19,13 @@ end
 name = 'Fluffy'
 fluffy = Pet.new(name)
 puts fluffy.name
+
 puts fluffy
+
 puts fluffy.name
+
 puts name
+
 
 # What output does this code print? Fix this class so that there are no
 # surprises waiting in store for the unsuspecting developer.

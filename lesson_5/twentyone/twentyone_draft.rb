@@ -1,108 +1,80 @@
 require 'pry'
 
-class Player
+class Participant
+  WINNING_SCORE = 21
+  DEALER_STAY = 17
   attr_reader :name, :hand
 
+  def initialize(player_name)
+    @name = player_name
+    @hand = []
+  end
+
+  def hit(card)
+    @hand << card
+  end
+
+  def busted?
+    total > WINNING_SCORE
+  end
+
+  def total
+    total = 0
+    @hand.each do |card|
+      total += card.value
+    end
+    total
+  end
+
+  def display_cards
+    values = @hand.map {|card| card.value}
+    puts joinor(values, ", ", "and")
+  end
+
+  def joinor(arr, sep = ", ", word = "or")
+    if arr.size == 2
+      "#{arr[0]} #{word} #{arr[1]}"
+    elsif arr.size > 2
+      "#{arr[0..-2].join(sep) + sep + word} #{arr[-1]}"
+    else
+      arr.join
+    end
+  end
+end
+
+class Player < Participant
   def initialize
     puts "What is your name?"
-    @name = gets.chomp.capitalize
-    @hand = []
-  end
-
-  def display_cards
-    values = @hand.map {|card| card.value}
-    puts joinor(values, ", ", "and")
-  end
-
-  def joinor(arr, sep = ", ", word = "or")
-    if arr.size == 2
-      "#{arr[0]} #{word} #{arr[1]}"
-    elsif arr.size > 2
-      "#{arr[0..-2].join(sep) + sep + word} #{arr[-1]}"
-    else
-      arr.join
-    end
-  end
-
-  def hit(card)
-    @hand << card
-  end
-
-  def stay
-  end
-
-  def busted?
-    total > 21
-  end
-
-  def total
-    total = 0
-    @hand.each do |card|
-      total += card.value
-    end
-    total
+    super(gets.chomp.capitalize)
   end
 end
 
-class Dealer
+class Dealer < Participant
   attr_reader :hand, :name
 
-  def initialize
-    @name = "Card Master"
-    @hand = []
-  end
-
-  def display_initial_cards
-    @hand.each_with_index do |card, idx|
-      if idx == 0
-        puts "secret card"
-      else
-        puts card
-      end
-    end
+  def initialize(player_name="Card Master")
+    super
   end
 
   def display_cards
-    values = @hand.map {|card| card.value}
+    values = @hand.map.with_index do |card, idx|
+      if idx == 0
+        "secret card"
+      else
+        card.value
+      end
+    end
+    # binding.pry
     puts joinor(values, ", ", "and")
   end
 
-  def joinor(arr, sep = ", ", word = "or")
-    if arr.size == 2
-      "#{arr[0]} #{word} #{arr[1]}"
-    elsif arr.size > 2
-      "#{arr[0..-2].join(sep) + sep + word} #{arr[-1]}"
-    else
-      arr.join
-    end
+  def under?(num)
+    num < DEALER_STAY
   end
 
-  def deal
-    # does the dealer or the deck deal?
+  def equal_or_over?(num)
+    num >= DEALER_STAY
   end
-
-  def hit(card)
-    @hand << card
-  end
-
-  def stay
-  end
-
-  def busted?
-    total > 21
-  end
-
-  def total
-    total = 0
-    @hand.each do |card|
-      total += card.value
-    end
-    total
-  end
-end
-
-class Participant
-  # what goes in here? all the redundant behaviors from Player and Dealer?
 end
 
 class Deck
@@ -186,6 +158,10 @@ class Game
     @deck = Deck.new
   end
 
+  def prompt(message)
+    puts ">> #{message}"
+  end
+
   def start
     #deck.display_size
     deal_cards
@@ -204,10 +180,10 @@ class Game
   end
 
   def show_cards
-    puts "You have:"
+    prompt("You have:")
     player.display_cards
-    puts "#{dealer.name} has:"
-    dealer.display_initial_cards
+    prompt("#{dealer.name} has:")
+    dealer.display_cards
   end
 
   def deal_cards
@@ -221,44 +197,44 @@ class Game
 
   def player_turn
     loop do
-      puts "You have a total of: #{player.total}"
+      prompt("You have a total of: #{player.total}")
       if player.busted?
-        puts "You busted!"
+        prompt("You busted!")
         break
       end
-      puts "Would you like to hit (h) or stay (s)?"
+      prompt("Would you like to hit (h) or stay (s)?")
       answer = gets.chomp.downcase
       if answer[0] == 'h'
         clear
         player.hit(deck.deal)
-        show_cards
-
+        player.display_cards
       elsif answer[0] == 's'
-        puts "You have a total of: #{player.total}"
+        prompt("You have a total of: #{player.total}")
         break
       else
-        puts "Invalid choice, please use 'h' for hit or 's' for stay."
+        prompt("Invalid choice, please use 'h' for hit or 's' for stay.")
       end
     end
-    show_cards
   end
 
   def dealer_turn
     loop do
-      puts "Dealer has:"
-      dealer.display_initial_cards
+      prompt("#{dealer.name} has:")
+      dealer.display_cards
       if dealer.busted?
-        puts "Dealer busted!"
+        prompt("#{dealer.name} busted!")
         break
       end
-      if dealer.total < 17
+      if dealer.under?(dealer.total)
         dealer.hit(deck.deal)
-        puts "Dealer hit"
-      elsif dealer.total >= 17
+        prompt("#{dealer.name} hit")
+        dealer.display_cards
+      elsif dealer.equal_or_over?(dealer.total)
         break
       end
     end
-    puts "Dealer's secret card was: #{dealer.hand[0].value}"
+    prompt("#{dealer.name} has a total of: #{dealer.total}")
+    prompt("#{dealer.name}'s secret card was: #{dealer.hand[0].value}")
   end
 
   def clear
@@ -267,15 +243,15 @@ class Game
 
   def show_result
     if dealer.busted?
-      puts "You won!"
+      prompt("You won!")
     elsif player.busted?
-      puts "Dealer won!"
+      prompt("Dealer won!")
     elsif player.total > dealer.total
-      puts "You won!"
+      prompt("You won!")
     elsif player.total < dealer.total
-      puts "Dealer won!"
+      prompt("Dealer won!")
     else
-      puts "It's a tie!"
+      prompt("It's a tie!")
     end
   end
 

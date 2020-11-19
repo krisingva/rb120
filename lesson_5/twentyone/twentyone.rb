@@ -1,5 +1,3 @@
-require 'pry'
-
 class Participant
   WINNING_SCORE = 21
   DEALER_STAY = 17
@@ -20,32 +18,28 @@ class Participant
   end
 
   def total
-    # binding.pry
     number_of_aces = 0
-    @hand.each do |card|
-      number_of_aces += 1 if card.value == [1, 11]
-    end
+    @hand.each { |card| number_of_aces += 1 if card.value == [1, 11] }
     total = 0
     if number_of_aces == 0
-      @hand.each do |card|
-        total += card.value
-      end
+      @hand.each { |card| total += card.value }
     elsif number_of_aces > 0
       total = total_with_aces(number_of_aces)
     end
     total
   end
 
+  # rubocop:disable Metrics/MethodLength
   def total_with_aces(num_aces)
     conv_to_eleven = 0
     total = 0
     hand_total = 0
     @hand.each do |card|
-      if card.value == [1, 11]
-        hand_total += 12
-      else
-        hand_total += card.value
-      end
+      hand_total += if card.value == [1, 11]
+                      12
+                    else
+                      card.value
+                    end
     end
     iterations = 2 * num_aces
     iterations.times do
@@ -56,6 +50,7 @@ class Participant
     end
     total
   end
+  # rubocop:enable Metrics/MethodLength
 
   def display_cards
     values = @hand.map do |card|
@@ -108,7 +103,6 @@ class Dealer < Participant
         card.value
       end
     end
-    # binding.pry
     puts joinor(values, ", ", "and")
   end
 
@@ -123,14 +117,14 @@ end
 
 class Deck
   SUITS = ["Hearts", "Spades", "Clubs", "Diamonds"]
-  NUMBERS = ["2", "3", "4", "5", "6", "7", "8", "9", "Jack", "Queen", "King", "Ace"]
+  NUMBERS = ["2", "3", "4", "5", "6", "7", "8", "9", "10"] +
+            ["Jack", "Queen", "King", "Ace"]
 
   attr_accessor :deck
 
   def initialize
     @deck = []
     make_deck
-    # display_deck
   end
 
   def make_deck
@@ -158,13 +152,12 @@ class Deck
 
   def deal
     current_card = deck.sample
-    # p current_card
     remove_from_deck(current_card)
     current_card
   end
 
   def remove_from_deck(card)
-    @deck = @deck - [card]
+    @deck -= [card]
   end
 end
 
@@ -178,6 +171,7 @@ class Card
     "7" => 7,
     "8" => 8,
     "9" => 9,
+    "10" => 10,
     "Jack" => 10,
     "Queen" => 10,
     "King" => 10,
@@ -190,10 +184,6 @@ class Card
     @suit = suit
     @card = [number, suit]
     @value = VALUES[number]
-  end
-
-  def to_s
-    "#{@number}"
   end
 end
 
@@ -213,29 +203,18 @@ class Game
   def start
     welcome_message
     loop do
-      deck.display_size
       deal_cards
       player_turn
-      if dealer_winner?
-        show_result
-        if play_again? == false
-          reset
-          break
-        end
-      else
-        dealer_turn
-        show_result
-        if play_again? == false
-          reset
-          break
-        end
-      end
+      dealer_turn if !(player.busted?)
+      show_result
+      break if !(play_again?)
+      reset
     end
   end
 
   def welcome_message
-    prompt("Welcome to Twentyone!")
-    prompt("Here are the rules:")
+    clear
+    prompt("Welcome to Twentyone! Here are the rules")
     prompt("The winning score is #{Participant::WINNING_SCORE}.")
     prompt("Anything over #{Participant::WINNING_SCORE} is a bust.")
     prompt("The player with the highest score wins.")
@@ -247,22 +226,31 @@ class Game
   end
 
   def show_dealer_cards
+    puts ""
     prompt("#{dealer.name} has:")
     dealer.display_cards
+    puts ""
   end
 
   def show_player_cards
+    puts ""
     prompt("You have:")
     player.display_cards
+    puts ""
   end
 
   def display_player_total
     prompt("You have a total of: #{player.total}")
   end
 
+  def display_dealer_total
+    prompt("#{dealer.name} has a total of: #{dealer.total}")
+  end
+
   def deal_cards
     clear
-    prompt("Let's deal the cards")
+    prompt("Let's deal the cards:")
+    puts ""
     2.times do
       player.hand << deck.deal
     end
@@ -271,6 +259,8 @@ class Game
     end
   end
 
+  # rubocop:disable Metrics/MethodLength
+  # rubocop:disable Metrics/AbcSize
   def player_turn
     loop do
       if player.busted?
@@ -286,9 +276,8 @@ class Game
         clear
         player.hit(deck.deal)
       elsif answer[0] == 's'
-        display_player_total
-        prompt("Press enter when you are ready for dealer's turn.")
-        gets.chomp
+        # prompt("Press enter when you are ready for dealer's turn.")
+        # gets.chomp
         break
       else
         prompt("Invalid choice, please use 'h' for hit or 's' for stay.")
@@ -298,6 +287,8 @@ class Game
 
   def dealer_turn
     clear
+    prompt("Dealers turn!")
+    puts ""
     loop do
       prompt("#{dealer.name} has:")
       dealer.display_cards
@@ -306,25 +297,40 @@ class Game
         break
       end
       if dealer.under?(dealer.total)
-        dealer.hit(deck.deal)
-        puts ""
-        prompt("#{dealer.name} decided to hit ...")
-        puts ""
+        dealer_hits
       elsif dealer.equal_or_over?(dealer.total)
+        dealer_stays
         break
       end
     end
+  end
+  # rubocop:enable Metrics/MethodLength
+  # rubocop:enable Metrics/AbcSize
+
+  def dealer_hits
+    dealer.hit(deck.deal)
+    puts ""
+    prompt("#{dealer.name} decided to hit ...")
+    puts ""
+  end
+
+  def dealer_stays
+    puts ""
     prompt("#{dealer.name} has a total of: #{dealer.total}")
-    prompt("#{dealer.name}'s secret card was: #{dealer.hand[0].value}")
+    prompt("#{dealer.name}'s secret card was: #{dealer.hand[0].number}")
+    puts ""
   end
 
   def player_busted
+    puts ""
     display_player_total
     prompt("You busted!")
     puts ""
   end
 
   def dealer_busted
+    puts ""
+    display_dealer_total
     prompt("#{dealer.name} busted!")
     puts ""
   end
@@ -333,41 +339,42 @@ class Game
     system "clear"
   end
 
+  # rubocop:disable Metrics/MethodLength
+  # rubocop:disable Metrics/AbcSize
   def show_result
     if dealer.busted?
-      prompt("You won!")
+      prompt("#{player.name} won!")
     elsif player.busted?
-      prompt("Dealer won!")
+      prompt("#{dealer.name} won!")
     elsif player.total > dealer.total
-      prompt("You won!")
+      prompt("#{player.name} won!")
     elsif player.total < dealer.total
-      prompt("Dealer won!")
+      prompt("#{dealer.name} won!")
     else
       prompt("It's a tie!")
     end
   end
-
-  def dealer_winner?
-    player.busted?
-  end
+  # rubocop:enable Metrics/AbcSize
 
   def play_again?
+    bool = nil
     loop do
       prompt("Would you like to play again (y/n)?")
       answer = gets.chomp.downcase[0]
       if answer == 'y'
-        reset
-        return true
+        bool = true
         break
       elsif answer == 'n'
         prompt("Thanks for playing Twentyone. Goodbye!")
-        return false
+        bool = false
         break
       else
         prompt("Invalid choice")
       end
     end
+    bool
   end
+  # rubocop:enable Metrics/MethodLength
 
   def reset
     player.reset
@@ -377,4 +384,3 @@ class Game
 end
 
 Game.new.start
-

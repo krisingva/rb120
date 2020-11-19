@@ -2,13 +2,13 @@
 # Question 2
 
 class Greeting
-  def greet(message)
+  def self.greet(message)
     puts message
   end
 end
 
 class Hello < Greeting
-  def hi
+  def self.hi
     greet("Hello")
   end
 end
@@ -20,3 +20,4 @@ class Goodbye < Greeting
 end
 
 # If we call Hello.hi we get an error message. How would you fix this?
+Hello.hi
